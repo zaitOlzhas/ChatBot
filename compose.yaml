@@ -1,0 +1,36 @@
+﻿services:
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+  
+  chatbot-api:
+    image: zaitolzhas/chatbot-api:latest
+    build:
+      context: ./ChatBotAPI/
+      dockerfile: ./Dockerfile
+      args:
+        BUILD_CONFIGURATION: Release
+    environment:
+      ASPNETCORE_URLS: http://*:5000
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__ChatBotDb: "Host=db;Port=5432;Database=${PG_DB};Username=${PG_USER};Password=${PG_PASSWORD}"
+      Telegram__Token: "${TELEGRAM_TOKEN}"
+    ports:
+      - "8080:5000"
+      - "8081:5001"
+    volumes:
+      - .:/src
+    depends_on:
+      - db
+volumes:
+  pg_data:
