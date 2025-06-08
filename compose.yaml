@@ -8,11 +8,21 @@
       POSTGRES_PASSWORD: ${PG_PASSWORD}
       POSTGRES_DB: ${PG_DB}
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+      LLM_BASE_URL: ${LLM_BASE_URL}
     ports:
       - "5433:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
   
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped   
+    
   chatbot-api:
     image: zaitolzhas/chatbot-api:latest
     build:
@@ -25,6 +35,7 @@
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__ChatBotDb: "Host=db;Port=5432;Database=${PG_DB};Username=${PG_USER};Password=${PG_PASSWORD}"
       Telegram__Token: "${TELEGRAM_TOKEN}"
+      Skynet__BaseUrl: "${LLM_BASE_URL}"
     ports:
       - "8080:5000"
       - "8081:5001"
@@ -32,5 +43,8 @@
       - .:/src
     depends_on:
       - db
+      - ollama
+    
 volumes:
   pg_data:
+  ollama_data:

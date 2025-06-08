@@ -1,6 +1,8 @@
 using ChatBotAPI.ConfigurationModels;
 using ChatBotAPI.DataBase;
 using ChatBotAPI.Services;
+using ChatBotAPI.Services.LLM;
+using ChatBotAPI.Services.Telegram;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChatBotAPI;
@@ -14,8 +16,7 @@ public class Program
         {
             DotNetEnv.Env.Load();
         }
-        Console.WriteLine("ConnectionString: " + builder.Configuration.GetConnectionString("ChatBotDb"));
-        Console.WriteLine("Telegram Token: " + builder.Configuration["Telegram:Token"]);
+        
         builder.Services.AddDbContext<ChatBotDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("ChatBotDb")));
         
@@ -23,8 +24,15 @@ public class Program
         
         builder.Services.AddHostedService<TelegramBotService>();
         builder.Services.AddHealthChecks()
-            .AddNpgSql(builder.Configuration.GetConnectionString("ChatBotDb"), name: "postgresql");
-
+            .AddNpgSql(builder.Configuration.GetConnectionString("ChatBotDb")!, name: "postgresql");
+        
+        builder.Services.AddHttpClient(OllamaServices.OllamaClentName, client =>
+        {
+            client.BaseAddress = new Uri(builder.Configuration.GetSection("Skynet:BaseUrl").Value ?? "http://localhost:11434");
+            client.Timeout = TimeSpan.FromSeconds(300);
+        });
+        builder.Services.AddScoped<OllamaServices>();
+        
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
